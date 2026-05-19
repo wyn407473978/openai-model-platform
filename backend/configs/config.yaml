@@ -17,7 +17,7 @@ oss:
   endpoint: oss-cn-hangzhou.aliyuncs.com
   access_key_id: ${VF_OSS_ACCESS_KEY_ID}
   access_key_secret: ${VF_OSS_ACCESS_KEY_SECRET}
-  bucket: ai-images
+  bucket: model-images-bucket
   region: cn-hangzhou
 
 openai:
