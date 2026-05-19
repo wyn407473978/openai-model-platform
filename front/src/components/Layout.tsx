@@ -11,6 +11,7 @@ export default function Layout() {
           <Link to="/models" className={styles.navLink}>Models</Link>
           <Link to="/images/generate" className={styles.navLink}>图片生成</Link>
           <Link to="/images/edit" className={styles.navLink}>图片编辑</Link>
+          <Link to="/logs" className={styles.navLink}>调用历史</Link>
           <Link to="/admin/models" className={styles.navLink}>Admin</Link>
         </nav>
         <div className={styles.userInfo}>

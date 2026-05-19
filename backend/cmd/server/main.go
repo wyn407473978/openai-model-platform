@@ -50,11 +50,21 @@ func main() {
 	// 初始化依赖
 	repo := repository.NewRepository(db)
 	imageModelRepo := repository.NewImageModelRepository(db)
+	imageGenLogRepo := repository.NewImageGenLogRepository(db)
 	svc := service.NewService(repo)
 	imageModelSvc := service.NewImageModelService(imageModelRepo)
+	imageGenLogSvc := service.NewImageGenLogService(imageGenLogRepo)
 	h := handler.NewHandler(svc)
 	imageModelHandler := handler.NewImageModelHandler(imageModelSvc)
-	imageGenHandler := handler.NewImageGenHandler()
+	imageGenHandler := handler.NewImageGenHandler(imageGenLogSvc)
+
+	// 自动迁移数据库表
+	if err := repository.AutoMigrateImageModel(db); err != nil {
+		logger.Fatal("Failed to migrate image model tables", zap.Error(err))
+	}
+	if err := repository.AutoMigrateImageGenLog(db); err != nil {
+		logger.Fatal("Failed to migrate image gen log tables", zap.Error(err))
+	}
 
 	// 注册路由
 	h.RegisterRoutes(r)

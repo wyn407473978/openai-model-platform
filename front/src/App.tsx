@@ -5,6 +5,7 @@ import ModelsPage from './pages/ModelsPage'
 import UsersPage from './pages/UsersPage'
 import ImageGeneratePage from './pages/ImageGeneratePage'
 import ImageEditPage from './pages/ImageEditPage'
+import HistoryPage from './pages/HistoryPage'
 import ModelsAdminPage from './pages/admin/ModelsAdminPage'
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="users" element={<UsersPage />} />
         <Route path="images/generate" element={<ImageGeneratePage />} />
         <Route path="images/edit" element={<ImageEditPage />} />
+        <Route path="logs" element={<HistoryPage />} />
         <Route path="admin/models" element={<ModelsAdminPage />} />
       </Route>
     </Routes>

@@ -4,26 +4,36 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/openai/openai-go/v3"
 
 	"github.com/your-org/openai-model-platform/backend/internal/aiclient"
+	"github.com/your-org/openai-model-platform/backend/internal/model"
+	"github.com/your-org/openai-model-platform/backend/internal/service"
 )
 
-type ImageGenHandler struct{}
+type ImageGenHandler struct {
+	logSvc *service.ImageGenLogService
+}
 
-func NewImageGenHandler() *ImageGenHandler {
-	return &ImageGenHandler{}
+func NewImageGenHandler(logSvc *service.ImageGenLogService) *ImageGenHandler {
+	return &ImageGenHandler{logSvc: logSvc}
 }
 
 func (h *ImageGenHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/images/generate", h.GenerateImage)
 	rg.POST("/images/edit", h.EditImage)
 	rg.POST("/images/variation", h.CreateVariation)
+
+	// 日志查询接口
+	rg.GET("/image-logs", h.ListLogs)
+	rg.GET("/image-logs/:id", h.GetLog)
 }
 
 // ImageGenerateRequest 文本生成图片请求
@@ -67,6 +77,49 @@ type ImageResponse struct {
 	Image string `json:"image"`  // base64 encoded image or URL
 	URL   string `json:"url,omitempty"`
 	Index int    `json:"index"`
+}
+
+// ListLogs 查询日志列表
+func (h *ImageGenHandler) ListLogs(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	model := c.Query("model")
+	operation := c.Query("operation")
+
+	logs, total, err := h.logSvc.ListLogs(service.ListLogsParams{
+		Model:     model,
+		Operation: operation,
+		Limit:     limit,
+		Offset:    offset,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"data":  logs,
+			"total": total,
+		},
+	})
+}
+
+// GetLog 获取单条日志
+func (h *ImageGenHandler) GetLog(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	log, err := h.logSvc.GetLogByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "log not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": log})
 }
 
 // GenerateImage 文本生成图片
@@ -145,6 +198,8 @@ func (h *ImageGenHandler) GenerateImage(c *gin.Context) {
 
 	resp, err := aiclient.Client.Images.Generate(ctx, params)
 	if err != nil {
+		// 记录失败日志
+		h.recordLog(req.Model, "generate", req.Prompt, req, nil, "failed", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -161,6 +216,9 @@ func (h *ImageGenHandler) GenerateImage(c *gin.Context) {
 			images[i].URL = img.URL
 		}
 	}
+
+	// 记录成功日志
+	h.recordLog(req.Model, "generate", req.Prompt, req, images, "success", "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":    images,
@@ -265,6 +323,8 @@ func (h *ImageGenHandler) EditImage(c *gin.Context) {
 
 	resp, err := aiclient.Client.Images.Edit(ctx, params)
 	if err != nil {
+		// 记录失败日志
+		h.recordLog(req.Model, "edit", req.Prompt, req, nil, "failed", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -281,6 +341,9 @@ func (h *ImageGenHandler) EditImage(c *gin.Context) {
 			images[i].URL = img.URL
 		}
 	}
+
+	// 记录成功日志
+	h.recordLog(req.Model, "edit", req.Prompt, req, images, "success", "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":    images,
@@ -329,6 +392,8 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 
 	resp, err := aiclient.Client.Images.NewVariation(ctx, params)
 	if err != nil {
+		// 记录失败日志
+		h.recordLog(req.Model, "variation", "", req, nil, "failed", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -346,8 +411,37 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 		}
 	}
 
+	// 记录成功日志
+	h.recordLog(req.Model, "variation", "", req, images, "success", "")
+
 	c.JSON(http.StatusOK, gin.H{
 		"data":    images,
 		"created": resp.Created,
 	})
+}
+
+// recordLog 记录日志
+func (h *ImageGenHandler) recordLog(modelStr, operation, prompt string, reqParams, respData interface{}, status, errorMsg string) {
+	if h.logSvc == nil {
+		return
+	}
+
+	// 序列化请求参数
+	reqJSON, _ := json.Marshal(reqParams)
+	respJSON, _ := json.Marshal(respData)
+
+	log := &model.ImageGenLog{
+		Model:          modelStr,
+		Operation:      operation,
+		RequestPrompt:  prompt,
+		RequestParams:  string(reqJSON),
+		ResponseData:   string(respJSON),
+		Status:         status,
+		ErrorMessage:   errorMsg,
+	}
+
+	// 异步记录日志，不阻塞主流程
+	go func() {
+		_ = h.logSvc.CreateLog(log)
+	}()
 }

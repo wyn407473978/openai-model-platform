@@ -123,8 +123,8 @@ func (r *ImageModelRepository) DeleteEnumValuesByParameterID(parameterID int64) 
 	return r.db.Delete(&model.ParameterEnumValue{}, "parameter_id = ?", parameterID).Error
 }
 
-// AutoMigrate 自动迁移
-func AutoMigrate(db *gorm.DB) error {
+// AutoMigrateImageModel 自动迁移图片模型表
+func AutoMigrateImageModel(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&model.ImageModel{},
 		&model.ModelParameter{},
