@@ -11,12 +11,21 @@ import {
   Typography,
   Spin,
   Alert,
+  Row,
+  Col,
+  Image,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { imageLogApi } from '@/api/imageLog';
 import type { ImageGenLog } from '@/types/imageLog';
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
+
+interface ImageResult {
+  image?: string;
+  url?: string;
+  index?: number;
+}
 
 export default function HistoryPage() {
   const [filterModel, setFilterModel] = useState<string>('');
@@ -164,42 +173,77 @@ export default function HistoryPage() {
         open={detailVisible}
         onCancel={() => setDetailVisible(false)}
         footer={null}
-        width={700}
+        width={800}
       >
         {selectedLog && (
-          <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="ID">{selectedLog.id}</Descriptions.Item>
-            <Descriptions.Item label="模型">{selectedLog.model}</Descriptions.Item>
-            <Descriptions.Item label="操作">{selectedLog.operation}</Descriptions.Item>
-            <Descriptions.Item label="状态">
-              <Tag color={selectedLog.status === 'success' ? 'success' : 'error'}>
-                {selectedLog.status}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Prompt">{selectedLog.request_prompt || '-'}</Descriptions.Item>
-            <Descriptions.Item label="请求参数">
-              <pre style={{ maxHeight: 200, overflow: 'auto' }}>
+          <>
+            <Descriptions column={2} bordered size="small">
+              <Descriptions.Item label="ID">{selectedLog.id}</Descriptions.Item>
+              <Descriptions.Item label="模型">{selectedLog.model}</Descriptions.Item>
+              <Descriptions.Item label="操作">
+                <Tag color={
+                  selectedLog.operation === 'generate' ? 'blue' :
+                  selectedLog.operation === 'edit' ? 'green' : 'purple'
+                }>
+                  {selectedLog.operation}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="状态">
+                <Tag color={selectedLog.status === 'success' ? 'success' : 'error'}>
+                  {selectedLog.status}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="创建时间" span={2}>
+                {new Date(selectedLog.created_at).toLocaleString('zh-CN')}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Card title="Prompt" size="small" style={{ marginTop: 16 }}>
+              <Paragraph>{selectedLog.request_prompt || '-'}</Paragraph>
+            </Card>
+
+            <Card title="请求参数" size="small" style={{ marginTop: 16 }}>
+              <pre style={{ maxHeight: 200, overflow: 'auto', margin: 0 }}>
                 {JSON.stringify(selectedLog.request_params, null, 2)}
               </pre>
-            </Descriptions.Item>
-            <Descriptions.Item label="响应数据">
-              {selectedLog.response_data ? (
-                <pre style={{ maxHeight: 200, overflow: 'auto' }}>
-                  {JSON.stringify(selectedLog.response_data, null, 2)}
-                </pre>
-              ) : (
-                '-'
-              )}
-            </Descriptions.Item>
+            </Card>
+
+            <Card title="生成的图片" size="small" style={{ marginTop: 16 }}>
+              {selectedLog.response_data ? (() => {
+                const images: ImageResult[] = typeof selectedLog.response_data === 'string'
+                  ? JSON.parse(selectedLog.response_data)
+                  : selectedLog.response_data;
+                if (!images || images.length === 0) return <Text type="secondary">无图片</Text>;
+                return (
+                  <Row gutter={[8, 8]}>
+                    {images.map((img, idx) => (
+                      <Col span={8} key={idx}>
+                        {img.image ? (
+                          <Image
+                            src={`data:image/png;base64,${img.image}`}
+                            alt={`生成图片 ${idx + 1}`}
+                            style={{ width: '100%', height: 150, objectFit: 'cover' }}
+                          />
+                        ) : img.url ? (
+                          <Image
+                            src={img.url}
+                            alt={`生成图片 ${idx + 1}`}
+                            style={{ width: '100%', height: 150, objectFit: 'cover' }}
+                          />
+                        ) : null}
+                      </Col>
+                    ))}
+                  </Row>
+                );
+              })() : <Text type="secondary">无响应数据</Text>}
+            </Card>
+
             {selectedLog.error_message && (
-              <Descriptions.Item label="错误信息">
+              <Card title="错误信息" size="small" style={{ marginTop: 16 }}>
                 <Text type="danger">{selectedLog.error_message}</Text>
-              </Descriptions.Item>
+              </Card>
             )}
-            <Descriptions.Item label="创建时间">
-              {new Date(selectedLog.created_at).toLocaleString('zh-CN')}
-            </Descriptions.Item>
-          </Descriptions>
+          </>
         )}
       </Modal>
     </div>
