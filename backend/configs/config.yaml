@@ -15,10 +15,10 @@ database:
 
 oss:
   endpoint: oss-cn-hangzhou.aliyuncs.com
-  access_key_id: ${OSS_ACCESS_KEY_ID}
-  access_key_secret: ${OSS_ACCESS_KEY_SECRET}
-  bucket: ${OSS_BUCKET}
-  region: ${OSS_REGION}
+  access_key_id: ${VF_OSS_ACCESS_KEY_ID}
+  access_key_secret: ${VF_OSS_ACCESS_KEY_SECRET}
+  bucket: ai-images
+  region: cn-hangzhou
 
 openai:
   api_key: ${OPENAI_API_KEY}
