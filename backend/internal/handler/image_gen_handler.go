@@ -258,6 +258,21 @@ func (h *ImageGenHandler) EditImage(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
 	defer cancel()
 
+	// 上传用户图片到 OSS（用于存储）
+	userImageURLs, _ := uploadUserImagesToOSS(req.Images, "user-upload/edit")
+	maskURL, _ := uploadSingleUserImageToOSS(req.Mask, "user-upload/mask")
+
+	// 将 OSS URL 添加到请求中用于日志记录
+	editReq := struct {
+		ImageEditRequest
+		UserImageURLs []string `json:"user_image_urls,omitempty"`
+		MaskURL      string  `json:"mask_url,omitempty"`
+	}{
+		ImageEditRequest: req,
+		UserImageURLs:    userImageURLs,
+		MaskURL:         maskURL,
+	}
+
 	// Decode base64 images
 	readers := make([]io.Reader, len(req.Images))
 	for i, imgStr := range req.Images {
@@ -340,7 +355,7 @@ func (h *ImageGenHandler) EditImage(c *gin.Context) {
 	resp, err := aiclient.Client.Images.Edit(ctx, params)
 	if err != nil {
 		// 记录失败日志
-		h.recordLog(req.Model, "edit", req.Prompt, req, nil, "failed", err.Error())
+		h.recordLog(req.Model, "edit", req.Prompt, editReq, nil, "failed", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -372,7 +387,7 @@ func (h *ImageGenHandler) EditImage(c *gin.Context) {
 	}
 
 	// 记录成功日志
-	h.recordLog(req.Model, "edit", req.Prompt, req, images, "success", "")
+	h.recordLog(req.Model, "edit", req.Prompt, editReq, images, "success", "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":    images,
@@ -390,6 +405,18 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
 	defer cancel()
+
+	// 上传用户图片到 OSS（用于存储）
+	userImageURL, _ := uploadSingleUserImageToOSS(req.Image, "user-upload/variation")
+
+	// 将 OSS URL 添加到请求中用于日志记录
+	variationReq := struct {
+		ImageVariationRequest
+		UserImageURL string `json:"user_image_url,omitempty"`
+	}{
+		ImageVariationRequest: req,
+		UserImageURL:         userImageURL,
+	}
 
 	// Decode base64 image
 	imageData, err := base64.StdEncoding.DecodeString(req.Image)
@@ -422,7 +449,7 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 	resp, err := aiclient.Client.Images.NewVariation(ctx, params)
 	if err != nil {
 		// 记录失败日志
-		h.recordLog(req.Model, "variation", "", req, nil, "failed", err.Error())
+		h.recordLog(req.Model, "variation", "", variationReq, nil, "failed", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -454,7 +481,7 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 	}
 
 	// 记录成功日志
-	h.recordLog(req.Model, "variation", "", req, images, "success", "")
+	h.recordLog(req.Model, "variation", "", variationReq, images, "success", "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":    images,
@@ -486,4 +513,42 @@ func (h *ImageGenHandler) recordLog(modelStr, operation, prompt string, reqParam
 	go func() {
 		_ = h.logSvc.CreateLog(log)
 	}()
+}
+
+// uploadUserImagesToOSS 上传用户图片到 OSS，返回 OSS URL 列表
+// prefix: OSS 路径前缀，如 "user-upload/edit"
+func uploadUserImagesToOSS(images []string, prefix string) ([]string, error) {
+	if !oss.IsEnabled() || len(images) == 0 {
+		return nil, nil
+	}
+
+	ossURLs := make([]string, len(images))
+	for i, imgStr := range images {
+		data, err := base64.StdEncoding.DecodeString(imgStr)
+		if err != nil {
+			continue // 解码失败跳过
+		}
+
+		objectKey := fmt.Sprintf("%s/%d_%d.png", prefix, time.Now().UnixMilli(), i)
+		url, err := oss.UploadImage(objectKey, data, "image/png")
+		if err == nil {
+			ossURLs[i] = url
+		}
+	}
+	return ossURLs, nil
+}
+
+// uploadSingleUserImageToOSS 上传单个用户图片到 OSS
+func uploadSingleUserImageToOSS(imgStr, prefix string) (string, error) {
+	if !oss.IsEnabled() || imgStr == "" {
+		return "", nil
+	}
+
+	data, err := base64.StdEncoding.DecodeString(imgStr)
+	if err != nil {
+		return "", err
+	}
+
+	objectKey := fmt.Sprintf("%s/%d.png", prefix, time.Now().UnixMilli())
+	return oss.UploadImage(objectKey, data, "image/png")
 }
