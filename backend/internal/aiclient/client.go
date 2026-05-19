@@ -1,6 +1,9 @@
 package aiclient
 
 import (
+	"net/http"
+	"net/url"
+
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 
@@ -11,14 +14,20 @@ var Client openai.Client
 
 func InitOpenAIClient() {
 	apiKey := config.GetString("openai.api_key")
-	baseURL := config.GetString("openai.base_url")
+	proxyURL := config.GetString("openai.proxy")
 
 	opts := []option.RequestOption{
 		option.WithAPIKey(apiKey),
 	}
 
-	if baseURL != "" {
-		opts = append(opts, option.WithBaseURL(baseURL))
+	// 配置代理
+	if proxyURL != "" {
+		proxy, err := url.Parse(proxyURL)
+		if err == nil {
+			transport := &http.Transport{Proxy: http.ProxyURL(proxy)}
+			httpClient := &http.Client{Transport: transport}
+			opts = append(opts, option.WithHTTPClient(httpClient))
+		}
 	}
 
 	Client = openai.NewClient(opts...)

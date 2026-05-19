@@ -22,7 +22,7 @@ oss:
 
 openai:
   api_key: ${OPENAI_API_KEY}
-  base_url: "https://api.openai.com"
+  proxy: "http://127.0.0.1:7890"
 
 jwt:
   secret: ${JWT_SECRET}
