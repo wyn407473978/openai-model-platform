@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { modelApi } from '@/api/user'
+import { imageModelApi } from '@/api/admin/imageModel'
 
 export default function ModelsPage() {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['models'],
+    queryKey: ['enabledModels'],
     queryFn: async () => {
-      const res = await modelApi.list()
+      const res = await imageModelApi.listEnabled()
       return res.data.data
     },
   })
@@ -14,12 +14,13 @@ export default function ModelsPage() {
   if (error) return <div>Error loading models</div>
 
   return (
-    <div>
-      <h1>Models</h1>
+    <div style={{ padding: 24 }}>
+      <h1>图片模型</h1>
       <div>
         {data?.map((model) => (
-          <div key={model.id}>
-            {model.name} - {model.provider}
+          <div key={model.id} style={{ padding: '8px 0', borderBottom: '1px solid #eee' }}>
+            <strong>{model.name}</strong> ({model.model_id})
+            {model.description && <div style={{ color: '#666' }}>{model.description}</div>}
           </div>
         ))}
       </div>
