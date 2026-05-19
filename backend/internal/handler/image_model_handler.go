@@ -128,13 +128,16 @@ func (h *ImageModelHandler) GetModelParameters(c *gin.Context) {
 
 // CreateParameter 创建参数配置
 func (h *ImageModelHandler) CreateParameter(c *gin.Context) {
-	modelID := c.Param("model_id")
 	var req model.ModelParameter
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	req.ModelID = modelID
+
+	if req.ModelID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "model_id is required"})
+		return
+	}
 
 	if err := h.svc.CreateParameter(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -172,7 +175,7 @@ func (h *ImageModelHandler) DeleteParameter(c *gin.Context) {
 
 // CreateEnumValue 创建枚举值
 func (h *ImageModelHandler) CreateEnumValue(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, _ := strconv.ParseInt(c.Param("param_id"), 10, 64)
 	var req model.ParameterEnumValue
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
