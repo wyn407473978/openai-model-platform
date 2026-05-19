@@ -1,0 +1,33 @@
+server:
+  address: :8080
+  mode: debug  # debug, release, test
+
+database:
+  host: localhost
+  port: 55432
+  username: video_factory
+  password: video_factory
+  name: openai-model-platform
+  ssl_mode: disable
+  max_idle_conns: 10
+  max_open_conns: 50
+
+
+oss:
+  endpoint: oss-cn-hangzhou.aliyuncs.com
+  access_key_id: ${OSS_ACCESS_KEY_ID}
+  access_key_secret: ${OSS_ACCESS_KEY_SECRET}
+  bucket: ${OSS_BUCKET}
+  region: ${OSS_REGION}
+
+openai:
+  api_key: ${OPENAI_API_KEY}
+  base_url: "https://api.openai.com"
+
+jwt:
+  secret: ${JWT_SECRET}
+  expire_hours: 24
+
+log:
+  level: info
+  encoding: json
