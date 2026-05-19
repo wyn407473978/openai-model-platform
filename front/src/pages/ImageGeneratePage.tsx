@@ -11,7 +11,6 @@ import {
   Spin,
   message,
   Space,
-  Radio,
   InputNumber,
   Slider,
   Alert,
@@ -110,17 +109,15 @@ export default function ImageGeneratePage() {
             label={param.param_label}
             rules={rules}
           >
-            <Radio.Group>
-              <Space direction="vertical">
-                {param.enum_values
-                  ?.sort((a, b) => a.enum_order - b.enum_order)
-                  .map((enumVal) => (
-                    <Radio key={enumVal.enum_value} value={enumVal.enum_value}>
-                      {enumVal.enum_label}
-                    </Radio>
-                  ))}
-              </Space>
-            </Radio.Group>
+            <Select placeholder={`请选择${param.param_label}`}>
+              {param.enum_values
+                ?.sort((a, b) => a.enum_order - b.enum_order)
+                .map((enumVal) => (
+                  <Select.Option key={enumVal.enum_value} value={enumVal.enum_value}>
+                    {enumVal.enum_label}
+                  </Select.Option>
+                ))}
+            </Select>
           </Form.Item>
         );
 
