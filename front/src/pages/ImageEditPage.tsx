@@ -30,8 +30,7 @@ const { Dragger } = Upload;
 
 export default function ImageEditPage() {
   const [form] = Form.useForm();
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-image-1');
-  const [parameters, setParameters] = useState<ModelParameter[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [maskImage, setMaskImage] = useState<string>('');
   const [editedImages, setEditedImages] = useState<ImageResult[]>([]);
@@ -47,25 +46,22 @@ export default function ImageEditPage() {
   });
 
   // 获取模型参数配置
-  const { refetch: fetchParameters } = useQuery({
+  const { data: parametersData, isLoading: paramsLoading } = useQuery({
     queryKey: ['modelParametersForEdit', selectedModel],
     queryFn: async () => {
       if (!selectedModel) return [];
       const res = await imageModelApi.getParameters(selectedModel);
       return res.data.data as ModelParameter[];
     },
-    enabled: false,
+    enabled: !!selectedModel,
   });
 
-  const handleModelChange = async (modelId: string) => {
+  // 按 param_order 排序参数
+  const sortedParameters = [...(parametersData || [])].sort((a, b) => a.param_order - b.param_order);
+
+  const handleModelChange = (modelId: string) => {
     setSelectedModel(modelId);
     setEditedImages([]);
-
-    const result = await fetchParameters();
-    if (result.data) {
-      const sortedParams = [...result.data].sort((a, b) => a.param_order - b.param_order);
-      setParameters(sortedParams);
-    }
   };
 
   const getBase64 = (file: File): Promise<string> => {
@@ -251,7 +247,8 @@ export default function ImageEditPage() {
               </Form.Item>
 
               {/* 动态渲染参数 */}
-              {parameters.map((param) => renderParameterInput(param))}
+              {paramsLoading && <div style={{ padding: 8 }}>加载参数中...</div>}
+              {sortedParameters.map((param) => renderParameterInput(param))}
 
               <Form.Item>
                 <Space>
