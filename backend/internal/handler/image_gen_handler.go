@@ -198,10 +198,13 @@ func (h *ImageGenHandler) GenerateImage(c *gin.Context) {
 		params.ResponseFormat = openai.ImageGenerateParamsResponseFormatB64JSON
 	}
 
+	startTime := time.Now()
 	resp, err := aiclient.Client.Images.Generate(ctx, params)
+	durationMs := time.Since(startTime).Milliseconds()
+
 	if err != nil {
 		// 记录失败日志
-		h.recordLog(req.Model, "generate", req.Prompt, req, nil, "failed", err.Error())
+		h.recordLog(req.Model, "generate", req.Prompt, req, nil, "failed", err.Error(), durationMs)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -234,7 +237,7 @@ func (h *ImageGenHandler) GenerateImage(c *gin.Context) {
 	}
 
 	// 记录成功日志
-	h.recordLog(req.Model, "generate", req.Prompt, req, images, "success", "")
+	h.recordLog(req.Model, "generate", req.Prompt, req, images, "success", "", durationMs)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":    images,
@@ -352,10 +355,13 @@ func (h *ImageGenHandler) EditImage(c *gin.Context) {
 		params.InputFidelity = openai.ImageEditParamsInputFidelityLow
 	}
 
+	startTime := time.Now()
 	resp, err := aiclient.Client.Images.Edit(ctx, params)
+	durationMs := time.Since(startTime).Milliseconds()
+
 	if err != nil {
 		// 记录失败日志
-		h.recordLog(req.Model, "edit", req.Prompt, editReq, nil, "failed", err.Error())
+		h.recordLog(req.Model, "edit", req.Prompt, editReq, nil, "failed", err.Error(), durationMs)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -387,7 +393,7 @@ func (h *ImageGenHandler) EditImage(c *gin.Context) {
 	}
 
 	// 记录成功日志
-	h.recordLog(req.Model, "edit", req.Prompt, editReq, images, "success", "")
+	h.recordLog(req.Model, "edit", req.Prompt, editReq, images, "success", "", durationMs)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":    images,
@@ -446,10 +452,13 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 		params.Size = openai.ImageNewVariationParamsSize1024x1024
 	}
 
+	startTime := time.Now()
 	resp, err := aiclient.Client.Images.NewVariation(ctx, params)
+	durationMs := time.Since(startTime).Milliseconds()
+
 	if err != nil {
 		// 记录失败日志
-		h.recordLog(req.Model, "variation", "", variationReq, nil, "failed", err.Error())
+		h.recordLog(req.Model, "variation", "", variationReq, nil, "failed", err.Error(), durationMs)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -481,7 +490,7 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 	}
 
 	// 记录成功日志
-	h.recordLog(req.Model, "variation", "", variationReq, images, "success", "")
+	h.recordLog(req.Model, "variation", "", variationReq, images, "success", "", durationMs)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":    images,
@@ -490,7 +499,7 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 }
 
 // recordLog 记录日志
-func (h *ImageGenHandler) recordLog(modelStr, operation, prompt string, reqParams, respData interface{}, status, errorMsg string) {
+func (h *ImageGenHandler) recordLog(modelStr, operation, prompt string, reqParams, respData interface{}, status, errorMsg string, durationMs int64) {
 	if h.logSvc == nil {
 		return
 	}
@@ -507,6 +516,7 @@ func (h *ImageGenHandler) recordLog(modelStr, operation, prompt string, reqParam
 		ResponseData:   string(respJSON),
 		Status:         status,
 		ErrorMessage:   errorMsg,
+		DurationMs:    durationMs,
 	}
 
 	// 异步记录日志，不阻塞主流程

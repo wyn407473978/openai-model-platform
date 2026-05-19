@@ -94,6 +94,13 @@ export default function HistoryPage() {
       ),
     },
     {
+      title: '耗时',
+      dataIndex: 'duration_ms',
+      key: 'duration_ms',
+      width: 100,
+      render: (ms: number) => ms ? `${ms}ms` : '-',
+    },
+    {
       title: '时间',
       dataIndex: 'created_at',
       key: 'created_at',
