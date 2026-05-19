@@ -28,7 +28,6 @@ const { TextArea } = Input;
 export default function ImageGeneratePage() {
   const [form] = Form.useForm();
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [parameters, setParameters] = useState<ModelParameter[]>([]);
   const [generatedImages, setGeneratedImages] = useState<ImageResult[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -42,28 +41,23 @@ export default function ImageGeneratePage() {
   });
 
   // 获取模型参数配置
-  const { refetch: fetchParameters } = useQuery({
+  const { data: parametersData, isLoading: paramsLoading } = useQuery({
     queryKey: ['modelParameters', selectedModel],
     queryFn: async () => {
       if (!selectedModel) return [];
       const res = await imageModelApi.getParameters(selectedModel);
       return res.data.data as ModelParameter[];
     },
-    enabled: false,
+    enabled: !!selectedModel,
   });
 
-  const handleModelChange = async (modelId: string) => {
+  const handleModelChange = (modelId: string) => {
     setSelectedModel(modelId);
     setGeneratedImages([]);
-
-    // 获取该模型的参数配置
-    const result = await fetchParameters();
-    if (result.data) {
-      // 按 param_order 排序
-      const sortedParams = [...result.data].sort((a, b) => a.param_order - b.param_order);
-      setParameters(sortedParams);
-    }
   };
+
+  // 按 param_order 排序参数
+  const sortedParameters = [...(parametersData || [])].sort((a, b) => a.param_order - b.param_order);
 
   const handleGenerate = async (values: Record<string, unknown>) => {
     setLoading(true);
@@ -231,7 +225,8 @@ export default function ImageGeneratePage() {
               </Form.Item>
 
               {/* 动态渲染参数 */}
-              {parameters.map((param) => renderParameterInput(param))}
+              {paramsLoading && <div style={{ padding: 8 }}>加载参数中...</div>}
+              {sortedParameters.map((param) => renderParameterInput(param))}
 
               <Form.Item>
                 <Button
