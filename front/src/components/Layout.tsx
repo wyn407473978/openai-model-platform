@@ -1,16 +1,7 @@
-import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '@/stores/authStore'
+import { Outlet, Link } from 'react-router-dom'
 import styles from './Layout.module.css'
 
 export default function Layout() {
-  const navigate = useNavigate()
-  const { user, logout } = useAuthStore()
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
-
   return (
     <div className={styles.layout}>
       <header className={styles.header}>
@@ -23,10 +14,7 @@ export default function Layout() {
           <Link to="/admin/models" className={styles.navLink}>Admin</Link>
         </nav>
         <div className={styles.userInfo}>
-          <span>{user?.nickname || user?.username}</span>
-          <button onClick={handleLogout} className={styles.logoutBtn}>
-            Logout
-          </button>
+          <span>Guest</span>
         </div>
       </header>
       <main className={styles.main}>
