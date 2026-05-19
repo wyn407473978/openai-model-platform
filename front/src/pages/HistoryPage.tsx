@@ -203,9 +203,36 @@ export default function HistoryPage() {
             </Card>
 
             <Card title="请求参数" size="small" style={{ marginTop: 16 }}>
-              <pre style={{ maxHeight: 200, overflow: 'auto', margin: 0 }}>
-                {JSON.stringify(selectedLog.request_params, null, 2)}
-              </pre>
+              {(() => {
+                const params = selectedLog.request_params;
+                if (!params || (typeof params === 'string' && params === '{}')) {
+                  return <Text type="secondary">无</Text>;
+                }
+                const paramsObj = typeof params === 'string' ? JSON.parse(params) : params;
+                return (
+                  <Descriptions column={2} size="small" colon={false}>
+                    {Object.entries(paramsObj).map(([key, value]) => (
+                      <Descriptions.Item key={key} label={key}>
+                        {key === 'user_image_urls' && Array.isArray(value) ? (
+                          <Space direction="vertical" size={0}>
+                            {value.map((url, i) => (
+                              <Text key={i} style={{ fontSize: 12 }} copyable={{ text: url as string }}>
+                                {String(url).substring(0, 50)}...
+                              </Text>
+                            ))}
+                          </Space>
+                        ) : key === 'mask_url' && value ? (
+                          <Text style={{ fontSize: 12 }} copyable={{ text: value as string }}>
+                            {String(value).substring(0, 50)}...
+                          </Text>
+                        ) : (
+                          <Text style={{ fontSize: 12 }}>{String(value)}</Text>
+                        )}
+                      </Descriptions.Item>
+                    ))}
+                  </Descriptions>
+                );
+              })()}
             </Card>
 
             <Card title="生成的图片" size="small" style={{ marginTop: 16 }}>
