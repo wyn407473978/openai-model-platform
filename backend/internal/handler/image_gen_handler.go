@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/your-org/openai-model-platform/backend/internal/aiclient"
 	"github.com/your-org/openai-model-platform/backend/internal/model"
+	"github.com/your-org/openai-model-platform/backend/internal/oss"
 	"github.com/your-org/openai-model-platform/backend/internal/service"
 )
 
@@ -210,7 +212,21 @@ func (h *ImageGenHandler) GenerateImage(c *gin.Context) {
 			Index: i,
 		}
 		if img.B64JSON != "" {
-			images[i].Image = img.B64JSON
+			// 上传 base64 图片到 OSS
+			if oss.IsEnabled() {
+				imageData, _ := base64.StdEncoding.DecodeString(img.B64JSON)
+				objectKey := fmt.Sprintf("images/generate/%d_%d.png", time.Now().UnixMilli(), i)
+				ossURL, err := oss.UploadImage(objectKey, imageData, "image/png")
+				if err == nil {
+					images[i].URL = ossURL
+					images[i].Image = "" // OSS URL 有了就不需要返回 base64
+				} else {
+					// OSS 上传失败，返回 base64
+					images[i].Image = img.B64JSON
+				}
+			} else {
+				images[i].Image = img.B64JSON
+			}
 		}
 		if img.URL != "" {
 			images[i].URL = img.URL
@@ -335,7 +351,20 @@ func (h *ImageGenHandler) EditImage(c *gin.Context) {
 			Index: i,
 		}
 		if img.B64JSON != "" {
-			images[i].Image = img.B64JSON
+			// 上传 base64 图片到 OSS
+			if oss.IsEnabled() {
+				imageData, _ := base64.StdEncoding.DecodeString(img.B64JSON)
+				objectKey := fmt.Sprintf("images/edit/%d_%d.png", time.Now().UnixMilli(), i)
+				ossURL, err := oss.UploadImage(objectKey, imageData, "image/png")
+				if err == nil {
+					images[i].URL = ossURL
+					images[i].Image = ""
+				} else {
+					images[i].Image = img.B64JSON
+				}
+			} else {
+				images[i].Image = img.B64JSON
+			}
 		}
 		if img.URL != "" {
 			images[i].URL = img.URL
@@ -404,7 +433,20 @@ func (h *ImageGenHandler) CreateVariation(c *gin.Context) {
 			Index: i,
 		}
 		if img.B64JSON != "" {
-			images[i].Image = img.B64JSON
+			// 上传 base64 图片到 OSS
+			if oss.IsEnabled() {
+				imageData, _ := base64.StdEncoding.DecodeString(img.B64JSON)
+				objectKey := fmt.Sprintf("images/variation/%d_%d.png", time.Now().UnixMilli(), i)
+				ossURL, err := oss.UploadImage(objectKey, imageData, "image/png")
+				if err == nil {
+					images[i].URL = ossURL
+					images[i].Image = ""
+				} else {
+					images[i].Image = img.B64JSON
+				}
+			} else {
+				images[i].Image = img.B64JSON
+			}
 		}
 		if img.URL != "" {
 			images[i].URL = img.URL

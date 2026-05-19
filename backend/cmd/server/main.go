@@ -12,6 +12,7 @@ import (
 	"github.com/your-org/openai-model-platform/backend/internal/config"
 	"github.com/your-org/openai-model-platform/backend/internal/handler"
 	"github.com/your-org/openai-model-platform/backend/internal/middleware"
+	"github.com/your-org/openai-model-platform/backend/internal/oss"
 	"github.com/your-org/openai-model-platform/backend/internal/repository"
 	"github.com/your-org/openai-model-platform/backend/internal/service"
 	"github.com/your-org/openai-model-platform/backend/pkg/utils"
@@ -41,6 +42,11 @@ func main() {
 	// 初始化 OpenAI Client
 	aiclient.InitOpenAIClient()
 
+	// 初始化 OSS 客户端（如果配置了）
+	if err := oss.InitOSS(); err != nil {
+		logger.Warn("OSS not available, will use base64 encoding", zap.Error(err))
+	}
+
 	// 初始化路由
 	r := gin.Default()
 
@@ -58,10 +64,7 @@ func main() {
 	imageModelHandler := handler.NewImageModelHandler(imageModelSvc)
 	imageGenHandler := handler.NewImageGenHandler(imageGenLogSvc)
 
-	// 自动迁移数据库表
-	if err := repository.AutoMigrateImageModel(db); err != nil {
-		logger.Fatal("Failed to migrate image model tables", zap.Error(err))
-	}
+	// 自动迁移数据库表 - 先只创建新表，避免对已有表的复杂迁移
 	if err := repository.AutoMigrateImageGenLog(db); err != nil {
 		logger.Fatal("Failed to migrate image gen log tables", zap.Error(err))
 	}
