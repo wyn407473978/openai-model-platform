@@ -10,12 +10,11 @@ import {
   Col,
   Spin,
   message,
-  InputNumber,
   Slider,
-  Alert,
   Image,
+  InputNumber,
 } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ThunderboltOutlined, PictureOutlined } from '@ant-design/icons';
 import { imageModelApi } from '@/api/admin/imageModel';
 import { imageApi } from '@/api/image';
 import type { ImageModel, ModelParameter } from '@/types/image';
@@ -29,7 +28,6 @@ export default function ImageGeneratePage() {
   const [generatedImages, setGeneratedImages] = useState<ImageResult[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 获取启用的模型列表
   const { data: modelsData, isLoading: modelsLoading } = useQuery({
     queryKey: ['enabledModels'],
     queryFn: async () => {
@@ -38,7 +36,6 @@ export default function ImageGeneratePage() {
     },
   });
 
-  // 获取模型参数配置
   const { data: parametersData, isLoading: paramsLoading } = useQuery({
     queryKey: ['modelParameters', selectedModel],
     queryFn: async () => {
@@ -54,7 +51,6 @@ export default function ImageGeneratePage() {
     setGeneratedImages([]);
   };
 
-  // 按 param_order 排序参数
   const sortedParameters = [...(parametersData || [])].sort((a, b) => a.param_order - b.param_order);
 
   const handleGenerate = async (values: Record<string, unknown>) => {
@@ -65,7 +61,6 @@ export default function ImageGeneratePage() {
         prompt: values.prompt as string,
       };
 
-      // 只添加非空的参数
       if (values.n) request.n = values.n as number;
       if (values.size) request.size = values.size as string;
       if (values.quality) request.quality = values.quality as string;
@@ -102,62 +97,34 @@ export default function ImageGeneratePage() {
     switch (param.param_type) {
       case 'enum':
         return (
-          <Form.Item
-            key={param.param_key}
-            name={param.param_key}
-            label={param.param_label}
-            rules={rules}
-          >
+          <Form.Item key={param.param_key} name={param.param_key} label={param.param_label} rules={rules}>
             <Select placeholder={`请选择${param.param_label}`}>
-              {param.enum_values
-                ?.sort((a, b) => a.enum_order - b.enum_order)
-                .map((enumVal) => (
-                  <Select.Option key={enumVal.enum_value} value={enumVal.enum_value}>
-                    {enumVal.enum_label}
-                  </Select.Option>
-                ))}
+              {param.enum_values?.sort((a, b) => a.enum_order - b.enum_order).map((enumVal) => (
+                <Select.Option key={enumVal.enum_value} value={enumVal.enum_value}>
+                  {enumVal.enum_label}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
         );
 
       case 'boolean':
         return (
-          <Form.Item
-            key={param.param_key}
-            name={param.param_key}
-            label={param.param_label}
-            valuePropName="checked"
-          >
-            <Select
-              options={[
-                { label: '是', value: 'true' },
-                { label: '否', value: 'false' },
-              ]}
-            />
+          <Form.Item key={param.param_key} name={param.param_key} label={param.param_label} valuePropName="checked">
+            <Select options={[{ label: '是', value: 'true' }, { label: '否', value: 'false' }]} />
           </Form.Item>
         );
 
       case 'number':
         return (
-          <Form.Item
-            key={param.param_key}
-            name={param.param_key}
-            label={param.param_label}
-            rules={rules}
-          >
+          <Form.Item key={param.param_key} name={param.param_key} label={param.param_label} rules={rules}>
             <InputNumber min={1} max={10} style={{ width: '100%' }} />
           </Form.Item>
         );
 
-      case 'string':
       default:
         return (
-          <Form.Item
-            key={param.param_key}
-            name={param.param_key}
-            label={param.param_label}
-            rules={rules}
-          >
+          <Form.Item key={param.param_key} name={param.param_key} label={param.param_label} rules={rules}>
             <Input />
           </Form.Item>
         );
@@ -165,19 +132,29 @@ export default function ImageGeneratePage() {
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ marginBottom: 24 }}>图片生成</h1>
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: '-0.5px' }}>
+          图片生成
+        </h1>
+        <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: 14 }}>
+          使用 AI 模型根据描述生成图片
+        </p>
+      </div>
 
       <Row gutter={24}>
-        {/* 左侧：参数表单 */}
-        <Col span={12}>
-          <Card title="生成参数" loading={modelsLoading}>
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleGenerate}
-              initialValues={{ n: 1 }}
-            >
+        {/* Left: Form */}
+        <Col span={11}>
+          <Card
+            style={{ borderRadius: 16 }}
+            headStyle={{
+              borderBottom: '1px solid var(--color-border)',
+              padding: '16px 24px',
+              fontWeight: 600,
+            }}
+            bodyStyle={{ padding: 24 }}
+          >
+            <Form form={form} layout="vertical" onFinish={handleGenerate} initialValues={{ n: 1 }}>
               <Form.Item
                 name="model"
                 label="选择模型"
@@ -187,15 +164,14 @@ export default function ImageGeneratePage() {
                   placeholder="请选择模型"
                   onChange={handleModelChange}
                   loading={modelsLoading}
+                  size="large"
                 >
                   {modelsData?.map((model) => (
                     <Select.Option key={model.model_id} value={model.model_id}>
-                      <div>
-                        <div>{model.name}</div>
+                      <div style={{ padding: '4px 0' }}>
+                        <div style={{ fontWeight: 500 }}>{model.name}</div>
                         {model.description && (
-                          <div style={{ fontSize: 12, color: '#999' }}>
-                            {model.description}
-                          </div>
+                          <div style={{ fontSize: 12, color: '#94a3b8' }}>{model.description}</div>
                         )}
                       </div>
                     </Select.Option>
@@ -209,53 +185,69 @@ export default function ImageGeneratePage() {
                 rules={[{ required: true, message: '请输入描述' }]}
               >
                 <TextArea
-                  rows={4}
+                  rows={5}
                   placeholder="描述你想要生成的图片内容..."
                   maxLength={32000}
                   showCount
+                  style={{ resize: 'none' }}
                 />
               </Form.Item>
 
-              <Form.Item name="n" label="生成数量">
+              <Form.Item name="n" label="生成数量" valuePropName="n">
                 <Slider min={1} max={10} marks={{ 1: '1', 5: '5', 10: '10' }} />
               </Form.Item>
 
-              {/* 动态渲染参数 */}
-              {paramsLoading && <div style={{ padding: 8 }}>加载参数中...</div>}
+              {paramsLoading && <div style={{ padding: 8, color: 'var(--color-text-secondary)' }}>加载参数中...</div>}
               {sortedParameters.map((param) => renderParameterInput(param))}
 
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  disabled={!selectedModel}
-                  block
-                  size="large"
-                >
-                  生成图片
-                </Button>
-              </Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                disabled={!selectedModel}
+                block
+                size="large"
+                icon={<ThunderboltOutlined />}
+                style={{
+                  height: 48,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  borderRadius: 10,
+                  marginTop: 8,
+                }}
+              >
+                生成图片
+              </Button>
             </Form>
           </Card>
         </Col>
 
-        {/* 右侧：结果预览 */}
-        <Col span={12}>
-          <Card title="生成结果">
+        {/* Right: Result */}
+        <Col span={13}>
+          <Card
+            style={{ borderRadius: 16, minHeight: 500 }}
+            headStyle={{
+              borderBottom: '1px solid var(--color-border)',
+              padding: '16px 24px',
+              fontWeight: 600,
+            }}
+            bodyStyle={{ padding: 24 }}
+          >
             {loading && (
-              <div style={{ textAlign: 'center', padding: 48 }}>
+              <div style={{ textAlign: 'center', padding: 80 }}>
                 <Spin size="large" tip="正在生成图片..." />
               </div>
             )}
 
             {!loading && generatedImages.length === 0 && (
-              <Alert
-                message="暂无生成结果"
-                description="选择模型并输入描述后，点击生成图片按钮"
-                type="info"
-                showIcon
-              />
+              <div style={{ textAlign: 'center', padding: 80 }}>
+                <div style={{ fontSize: 64, marginBottom: 16, opacity: 0.3 }}>
+                  <PictureOutlined />
+                </div>
+                <div style={{ color: 'var(--color-text-secondary)' }}>
+                  选择模型并输入描述后，点击生成图片
+                </div>
+              </div>
             )}
 
             {generatedImages.length > 0 && (
@@ -272,15 +264,13 @@ export default function ImageGeneratePage() {
                             style={{ height: 200, objectFit: 'cover' }}
                           />
                         ) : img.url ? (
-                          <Image src={img.url} alt={`生成图片 ${index + 1}`} />
+                          <Image src={img.url} alt={`生成图片 ${index + 1}`} style={{ height: 200, objectFit: 'cover' }} />
                         ) : null
                       }
                       actions={[
-                        <DownloadOutlined
-                          key="download"
-                          onClick={() => downloadImage(img, index)}
-                        />,
+                        <DownloadOutlined key="download" onClick={() => downloadImage(img, index)} />,
                       ]}
+                      style={{ borderRadius: 12 }}
                     >
                       <Card.Meta
                         title={`图片 ${index + 1}`}

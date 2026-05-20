@@ -9,6 +9,10 @@ export interface ImageGenLog {
   response_data: Record<string, unknown> | null;
   status: 'success' | 'failed';
   error_message?: string;
+  duration_ms: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
   created_at: string;
 }
 

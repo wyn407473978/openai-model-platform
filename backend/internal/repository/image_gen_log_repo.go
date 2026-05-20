@@ -55,6 +55,18 @@ func (r *ImageGenLogRepository) List(limit, offset int, modelFilter, operation s
 	return logs, total, nil
 }
 
+// GetDistinctModels 获取去重的模型列表
+func (r *ImageGenLogRepository) GetDistinctModels() ([]string, error) {
+	var models []string
+	if err := r.db.Model(new(model.ImageGenLog)).
+		Distinct("model").
+		Order("model ASC").
+		Pluck("model", &models).Error; err != nil {
+		return nil, err
+	}
+	return models, nil
+}
+
 // AutoMigrateImageGenLog 自动迁移图片生成日志表
 func AutoMigrateImageGenLog(db *gorm.DB) error {
 	return db.AutoMigrate(&model.ImageGenLog{})

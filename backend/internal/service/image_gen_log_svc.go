@@ -41,3 +41,8 @@ func (s *ImageGenLogService) ListLogs(params ListLogsParams) ([]*model.ImageGenL
 func (s *ImageGenLogService) GetLogByID(id int64) (*model.ImageGenLog, error) {
 	return s.repo.GetByID(id)
 }
+
+// GetDistinctModels 获取去重的模型列表
+func (s *ImageGenLogService) GetDistinctModels() ([]string, error) {
+	return s.repo.GetDistinctModels()
+}

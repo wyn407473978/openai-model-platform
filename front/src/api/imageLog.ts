@@ -19,4 +19,9 @@ export const imageLogApi = {
   getById: (id: number) => {
     return http.get<ApiResponse<ImageGenLog>>(`/image-logs/${id}`);
   },
+
+  // 获取去重的模型列表
+  getModels: () => {
+    return http.get<ApiResponse<string[]>>('/image-logs/models/list');
+  },
 };

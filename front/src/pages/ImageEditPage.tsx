@@ -13,11 +13,10 @@ import {
   Space,
   Upload,
   Image,
-  Alert,
   InputNumber,
   Slider,
 } from 'antd';
-import { InboxOutlined, DownloadOutlined } from '@ant-design/icons';
+import { InboxOutlined, DownloadOutlined, EditOutlined, CopyOutlined } from '@ant-design/icons';
 import type { RcFile, UploadFile } from 'antd/es/upload';
 import { imageModelApi } from '@/api/admin/imageModel';
 import { imageApi } from '@/api/image';
@@ -35,7 +34,6 @@ export default function ImageEditPage() {
   const [editedImages, setEditedImages] = useState<ImageResult[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 获取启用的模型列表
   const { data: modelsData, isLoading: modelsLoading } = useQuery({
     queryKey: ['enabledModelsForEdit'],
     queryFn: async () => {
@@ -44,7 +42,6 @@ export default function ImageEditPage() {
     },
   });
 
-  // 获取模型参数配置
   const { data: parametersData, isLoading: paramsLoading } = useQuery({
     queryKey: ['modelParametersForEdit', selectedModel],
     queryFn: async () => {
@@ -55,7 +52,6 @@ export default function ImageEditPage() {
     enabled: !!selectedModel,
   });
 
-  // 按 param_order 排序参数
   const sortedParameters = [...(parametersData || [])].sort((a, b) => a.param_order - b.param_order);
 
   const handleModelChange = (modelId: string) => {
@@ -75,7 +71,7 @@ export default function ImageEditPage() {
   const handleImageUpload = useCallback(async (file: RcFile) => {
     const base64 = await getBase64(file);
     setUploadedImages((prev) => [...prev, base64]);
-    return false; // 阻止默认上传
+    return false;
   }, []);
 
   const handleMaskUpload = useCallback(async (file: RcFile) => {
@@ -164,61 +160,49 @@ export default function ImageEditPage() {
     switch (param.param_type) {
       case 'enum':
         return (
-          <Form.Item
-            key={param.param_key}
-            name={param.param_key}
-            label={param.param_label}
-            rules={rules}
-          >
+          <Form.Item key={param.param_key} name={param.param_key} label={param.param_label} rules={rules}>
             <Select placeholder={`请选择${param.param_label}`}>
-              {param.enum_values
-                ?.sort((a, b) => a.enum_order - b.enum_order)
-                .map((enumVal) => (
-                  <Select.Option key={enumVal.enum_value} value={enumVal.enum_value}>
-                    {enumVal.enum_label}
-                  </Select.Option>
-                ))}
+              {param.enum_values?.sort((a, b) => a.enum_order - b.enum_order).map((enumVal) => (
+                <Select.Option key={enumVal.enum_value} value={enumVal.enum_value}>
+                  {enumVal.enum_label}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
         );
-
       case 'number':
         return (
-          <Form.Item
-            key={param.param_key}
-            name={param.param_key}
-            label={param.param_label}
-            rules={rules}
-          >
+          <Form.Item key={param.param_key} name={param.param_key} label={param.param_label} rules={rules}>
             <InputNumber min={1} max={10} style={{ width: '100%' }} />
           </Form.Item>
         );
-
       default:
         return null;
     }
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ marginBottom: 24 }}>图片编辑</h1>
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: '-0.5px' }}>
+          图片编辑
+        </h1>
+        <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: 14 }}>
+          编辑现有图片或生成变体
+        </p>
+      </div>
 
       <Row gutter={24}>
-        {/* 左侧：参数表单 */}
-        <Col span={12}>
-          <Card title="编辑参数" loading={modelsLoading}>
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleEdit}
-              initialValues={{ n: 1 }}
-            >
+        {/* Left: Form */}
+        <Col span={11}>
+          <Card
+            style={{ borderRadius: 16 }}
+            headStyle={{ borderBottom: '1px solid var(--color-border)', padding: '16px 24px', fontWeight: 600 }}
+            bodyStyle={{ padding: 24 }}
+          >
+            <Form form={form} layout="vertical" onFinish={handleEdit} initialValues={{ n: 1 }}>
               <Form.Item label="选择模型">
-                <Select
-                  value={selectedModel}
-                  onChange={handleModelChange}
-                  loading={modelsLoading}
-                >
+                <Select value={selectedModel} onChange={handleModelChange} loading={modelsLoading} size="large">
                   {modelsData?.map((model) => (
                     <Select.Option key={model.model_id} value={model.model_id}>
                       {model.name}
@@ -227,24 +211,15 @@ export default function ImageEditPage() {
                 </Select>
               </Form.Item>
 
-              <Form.Item
-                name="prompt"
-                label="编辑描述"
-                rules={[{ required: true, message: '请输入编辑描述' }]}
-              >
-                <TextArea
-                  rows={3}
-                  placeholder="描述你想要如何编辑这张图片..."
-                  maxLength={32000}
-                />
+              <Form.Item name="prompt" label="编辑描述" rules={[{ required: true, message: '请输入编辑描述' }]}>
+                <TextArea rows={4} placeholder="描述你想要如何编辑这张图片..." maxLength={32000} showCount style={{ resize: 'none' }} />
               </Form.Item>
 
-              <Form.Item name="n" label="生成数量">
+              <Form.Item name="n" label="生成数量" valuePropName="n">
                 <Slider min={1} max={10} marks={{ 1: '1', 5: '5', 10: '10' }} />
               </Form.Item>
 
-              {/* 动态渲染参数 */}
-              {paramsLoading && <div style={{ padding: 8 }}>加载参数中...</div>}
+              {paramsLoading && <div style={{ padding: 8, color: 'var(--color-text-secondary)' }}>加载参数中...</div>}
               {sortedParameters.map((param) => renderParameterInput(param))}
 
               <Form.Item>
@@ -254,6 +229,8 @@ export default function ImageEditPage() {
                     htmlType="submit"
                     loading={loading}
                     disabled={uploadedImages.length === 0}
+                    icon={<EditOutlined />}
+                    style={{ borderRadius: 8 }}
                   >
                     编辑图片
                   </Button>
@@ -261,6 +238,8 @@ export default function ImageEditPage() {
                     onClick={handleVariation}
                     loading={loading}
                     disabled={uploadedImages.length === 0}
+                    icon={<CopyOutlined />}
+                    style={{ borderRadius: 8 }}
                   >
                     生成变体
                   </Button>
@@ -268,21 +247,22 @@ export default function ImageEditPage() {
               </Form.Item>
             </Form>
 
-            {/* 图片上传 */}
+            {/* Image Upload */}
             <div style={{ marginTop: 24 }}>
-              <h4>上传图片（1-16张）</h4>
+              <h4 style={{ marginBottom: 12, fontWeight: 600 }}>上传图片（1-16张）</h4>
               <Dragger
                 multiple
                 accept="image/png,image/jpeg,image/webp"
                 beforeUpload={handleImageUpload}
                 fileList={[]}
                 showUploadList={false}
+                style={{ borderRadius: 12 }}
               >
-                <p className="ant-upload-drag-icon">
-                  <InboxOutlined />
+                <p className="ant-upload-drag-icon" style={{ color: 'var(--color-primary)' }}>
+                  <InboxOutlined style={{ fontSize: 40 }} />
                 </p>
-                <p className="ant-upload-text">点击或拖拽上传图片</p>
-                <p className="ant-upload-hint">支持 PNG、JPG、WebP 格式</p>
+                <p className="ant-upload-text" style={{ fontWeight: 500 }}>点击或拖拽上传图片</p>
+                <p className="ant-upload-hint" style={{ color: 'var(--color-text-secondary)' }}>支持 PNG、JPG、WebP 格式</p>
               </Dragger>
 
               {uploadedImages.length > 0 && (
@@ -290,17 +270,13 @@ export default function ImageEditPage() {
                   <Row gutter={[8, 8]}>
                     {uploadedImages.map((img, index) => (
                       <Col span={6} key={index}>
-                        <div style={{ position: 'relative' }}>
-                          <Image
-                            src={img}
-                            alt={`上传图片 ${index + 1}`}
-                            style={{ width: '100%', height: 80, objectFit: 'cover' }}
-                          />
+                        <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden' }}>
+                          <Image src={img} alt={`上传图片 ${index + 1}`} style={{ width: '100%', height: 80, objectFit: 'cover' }} />
                           <Button
                             type="text"
                             danger
                             size="small"
-                            style={{ position: 'absolute', top: 4, right: 4 }}
+                            style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(255,255,255,0.9)' }}
                             onClick={() => removeImage(index)}
                           >
                             删除
@@ -313,41 +289,48 @@ export default function ImageEditPage() {
               )}
             </div>
 
-            {/* Mask 上传（可选） */}
+            {/* Mask Upload */}
             <div style={{ marginTop: 24 }}>
-              <h4>Mask 图片（可选）</h4>
+              <h4 style={{ marginBottom: 12, fontWeight: 600 }}>Mask 图片（可选）</h4>
               <Dragger
                 accept="image/png"
                 beforeUpload={handleMaskUpload}
                 fileList={maskImage ? [{ name: 'mask.png', status: 'done', uid: '1' } as UploadFile] : []}
                 onRemove={() => setMaskImage('')}
+                style={{ borderRadius: 12 }}
               >
-                <p className="ant-upload-drag-icon">
-                  <InboxOutlined />
+                <p className="ant-upload-drag-icon" style={{ color: 'var(--color-text-secondary)' }}>
+                  <InboxOutlined style={{ fontSize: 32 }} />
                 </p>
-                <p className="ant-upload-text">点击或拖拽上传 Mask</p>
-                <p className="ant-upload-hint">PNG 格式，用于指定编辑区域</p>
+                <p className="ant-upload-text" style={{ fontWeight: 500, fontSize: 14 }}>点击或拖拽上传 Mask</p>
+                <p className="ant-upload-hint" style={{ color: 'var(--color-text-secondary)', fontSize: 12 }}>PNG 格式，用于指定编辑区域</p>
               </Dragger>
             </div>
           </Card>
         </Col>
 
-        {/* 右侧：结果预览 */}
-        <Col span={12}>
-          <Card title="编辑结果">
+        {/* Right: Result */}
+        <Col span={13}>
+          <Card
+            style={{ borderRadius: 16, minHeight: 600 }}
+            headStyle={{ borderBottom: '1px solid var(--color-border)', padding: '16px 24px', fontWeight: 600 }}
+            bodyStyle={{ padding: 24 }}
+          >
             {loading && (
-              <div style={{ textAlign: 'center', padding: 48 }}>
+              <div style={{ textAlign: 'center', padding: 80 }}>
                 <Spin size="large" tip="正在处理图片..." />
               </div>
             )}
 
             {!loading && editedImages.length === 0 && (
-              <Alert
-                message="暂无编辑结果"
-                description="上传图片并输入描述后，点击编辑或生成变体"
-                type="info"
-                showIcon
-              />
+              <div style={{ textAlign: 'center', padding: 80 }}>
+                <div style={{ fontSize: 64, marginBottom: 16, opacity: 0.3 }}>
+                  <EditOutlined />
+                </div>
+                <div style={{ color: 'var(--color-text-secondary)' }}>
+                  上传图片并输入描述后，点击编辑或生成变体
+                </div>
+              </div>
             )}
 
             {editedImages.length > 0 && (
@@ -358,21 +341,13 @@ export default function ImageEditPage() {
                       hoverable
                       cover={
                         img.image ? (
-                          <Image
-                            src={`data:image/png;base64,${img.image}`}
-                            alt={`编辑结果 ${index + 1}`}
-                            style={{ height: 200, objectFit: 'cover' }}
-                          />
+                          <Image src={`data:image/png;base64,${img.image}`} alt={`编辑结果 ${index + 1}`} style={{ height: 200, objectFit: 'cover' }} />
                         ) : img.url ? (
-                          <Image src={img.url} alt={`编辑结果 ${index + 1}`} />
+                          <Image src={img.url} alt={`编辑结果 ${index + 1}`} style={{ height: 200, objectFit: 'cover' }} />
                         ) : null
                       }
-                      actions={[
-                        <DownloadOutlined
-                          key="download"
-                          onClick={() => downloadImage(img, index)}
-                        />,
-                      ]}
+                      actions={[<DownloadOutlined key="download" onClick={() => downloadImage(img, index)} />]}
+                      style={{ borderRadius: 12 }}
                     >
                       <Card.Meta
                         title={`结果 ${index + 1}`}

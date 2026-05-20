@@ -36,6 +36,12 @@ func InitConfig() error {
 	if proxy := os.Getenv("HTTPS_PROXY"); proxy != "" {
 		V.Set("openai.proxy", proxy)
 	}
+	if ossAccessKeyID := os.Getenv("VF_OSS_ACCESS_KEY_ID"); ossAccessKeyID != "" {
+		V.Set("oss.access_key_id", ossAccessKeyID)
+	}
+	if ossAccessKeySecret := os.Getenv("VF_OSS_ACCESS_KEY_SECRET"); ossAccessKeySecret != "" {
+		V.Set("oss.access_key_secret", ossAccessKeySecret)
+	}
 
 	return nil
 }
