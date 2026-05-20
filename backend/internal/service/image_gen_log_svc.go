@@ -46,3 +46,8 @@ func (s *ImageGenLogService) GetLogByID(id int64) (*model.ImageGenLog, error) {
 func (s *ImageGenLogService) GetDistinctModels() ([]string, error) {
 	return s.repo.GetDistinctModels()
 }
+
+// GetStats 获取统计数据
+func (s *ImageGenLogService) GetStats() (*repository.Stats, error) {
+	return s.repo.GetStats()
+}

@@ -69,7 +69,7 @@ export default function ImageGeneratePage() {
 
       const res = await imageApi.generate(request);
       if (res.data.data) {
-        setGeneratedImages(res.data.data.data || []);
+        setGeneratedImages(res.data.data || []);
         message.success('图片生成成功！');
       }
     } catch (error: unknown) {

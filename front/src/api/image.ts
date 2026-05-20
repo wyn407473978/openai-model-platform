@@ -4,7 +4,6 @@ import type {
   ImageEditRequest,
   ImageVariationRequest,
   ImageGenerateResponse,
-  ApiResponse,
 } from '@/types/imageGen';
 
 // 图片生成 API (用户端)
@@ -12,16 +11,16 @@ import type {
 export const imageApi = {
   // 文本生成图片
   generate: (data: ImageGenerateRequest) => {
-    return http.post<ApiResponse<ImageGenerateResponse>>('/images/generate', data);
+    return http.post<ImageGenerateResponse>('/images/generate', data);
   },
 
   // 图片编辑
   edit: (data: ImageEditRequest) => {
-    return http.post<ApiResponse<ImageGenerateResponse>>('/images/edit', data);
+    return http.post<ImageGenerateResponse>('/images/edit', data);
   },
 
   // 图片变体
   variation: (data: ImageVariationRequest) => {
-    return http.post<ApiResponse<ImageGenerateResponse>>('/images/variation', data);
+    return http.post<ImageGenerateResponse>('/images/variation', data);
   },
 };

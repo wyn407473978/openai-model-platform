@@ -9,6 +9,15 @@ export interface ListLogsParams {
   offset?: number;
 }
 
+export interface Stats {
+  total_calls: number;
+  today_calls: number;
+  success_rate: number;
+  active_models: number;
+  total_tokens: number;
+  today_tokens: number;
+}
+
 export const imageLogApi = {
   // 获取日志列表
   list: (params: ListLogsParams) => {
@@ -23,5 +32,10 @@ export const imageLogApi = {
   // 获取去重的模型列表
   getModels: () => {
     return http.get<ApiResponse<string[]>>('/image-logs/models/list');
+  },
+
+  // 获取统计数据
+  getStats: () => {
+    return http.get<ApiResponse<Stats>>('/stats');
   },
 };

@@ -67,6 +67,59 @@ func (r *ImageGenLogRepository) GetDistinctModels() ([]string, error) {
 	return models, nil
 }
 
+// Stats 统计数据结构
+type Stats struct {
+	TotalCalls     int64   `json:"total_calls"`
+	TodayCalls     int64   `json:"today_calls"`
+	SuccessRate    float64 `json:"success_rate"`
+	ActiveModels   int64   `json:"active_models"`
+	TotalTokens    int64   `json:"total_tokens"`
+	TodayTokens    int64   `json:"today_tokens"`
+}
+
+// GetStats 获取统计数据
+func (r *ImageGenLogRepository) GetStats() (*Stats, error) {
+	stats := &Stats{}
+
+	// 总调用量
+	r.db.Model(new(model.ImageGenLog)).Count(&stats.TotalCalls)
+
+	// 今日调用量
+	r.db.Model(new(model.ImageGenLog)).
+		Where("created_at >= CURRENT_DATE").
+		Count(&stats.TodayCalls)
+
+	// 活跃模型数
+	r.db.Model(new(model.ImageGenLog)).
+		Where("created_at >= CURRENT_DATE").
+		Distinct("model").
+		Pluck("model", &[]string{}). // just to get distinct count
+		Count(&stats.ActiveModels)
+
+	// 总 tokens
+	r.db.Model(new(model.ImageGenLog)).
+		Where("status = 'success'").
+		Select("COALESCE(SUM(total_tokens), 0)").
+		Scan(&stats.TotalTokens)
+
+	// 今日 tokens
+	r.db.Model(new(model.ImageGenLog)).
+		Where("created_at >= CURRENT_DATE").
+		Where("status = 'success'").
+		Select("COALESCE(SUM(total_tokens), 0)").
+		Scan(&stats.TodayTokens)
+
+	// 计算成功率
+	var successCount, totalCount int64
+	r.db.Model(new(model.ImageGenLog)).Count(&totalCount)
+	r.db.Model(new(model.ImageGenLog)).Where("status = 'success'").Count(&successCount)
+	if totalCount > 0 {
+		stats.SuccessRate = float64(successCount) / float64(totalCount) * 100
+	}
+
+	return stats, nil
+}
+
 // AutoMigrateImageGenLog 自动迁移图片生成日志表
 func AutoMigrateImageGenLog(db *gorm.DB) error {
 	return db.AutoMigrate(&model.ImageGenLog{})

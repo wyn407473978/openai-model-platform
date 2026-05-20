@@ -108,7 +108,7 @@ export default function ImageEditPage() {
 
       const res = await imageApi.edit(request);
       if (res.data.data) {
-        setEditedImages(res.data.data.data || []);
+        setEditedImages(res.data.data || []);
         message.success('图片编辑成功！');
       }
     } catch (error: unknown) {
@@ -132,7 +132,7 @@ export default function ImageEditPage() {
         image: uploadedImages[0],
       });
       if (res.data.data) {
-        setEditedImages(res.data.data.data || []);
+        setEditedImages(res.data.data || []);
         message.success('图片变体生成成功！');
       }
     } catch (error: unknown) {

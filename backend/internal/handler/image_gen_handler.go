@@ -37,6 +37,9 @@ func (h *ImageGenHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/image-logs", h.ListLogs)
 	rg.GET("/image-logs/models/list", h.GetModels)
 	rg.GET("/image-logs/:id", h.GetLog)
+
+	// 统计接口
+	rg.GET("/stats", h.GetStats)
 }
 
 // ImageGenerateRequest 文本生成图片请求
@@ -134,6 +137,17 @@ func (h *ImageGenHandler) GetModels(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": models})
+}
+
+// GetStats 获取统计数据
+func (h *ImageGenHandler) GetStats(c *gin.Context) {
+	stats, err := h.logSvc.GetStats()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": stats})
 }
 
 // GenerateImage 文本生成图片
